@@ -216,6 +216,7 @@ class MemoryBook {
                     right 0.7s cubic-bezier(0.4,0,0.2,1);
         border-radius: 6px 12px 12px 6px;
         box-shadow: 0 8px 28px rgba(0,0,0,0.65);
+        will-change: transform, left, right;
       }
       /* عند فتح الكتاب: كل الأوراق تصبح النصف الأيمن */
       #mb-book-3d.mb-is-open .mb-leaf {
@@ -230,17 +231,28 @@ class MemoryBook {
         -webkit-backface-visibility: hidden;
         overflow: hidden; background: #0a0a0a;
         border-radius: 6px 12px 12px 6px;
+        transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
+        will-change: transform;
+      }
+      /* إعطاء عمق فيزيائي طفيف (0.5px) لمنع تداخل الوجوه واهتزاز الرمشات على متصفحات الهاتف (Z-fighting Fix) */
+      .mb-leaf-front {
+        transform: rotateY(0deg) translateZ(0.5px);
+        -webkit-transform: rotateY(0deg) translateZ(0.5px);
+      }
+      .mb-leaf-back {
+        transform: rotateY(180deg) translateZ(0.5px);
+        -webkit-transform: rotateY(180deg) translateZ(0.5px);
+        border-radius: 12px 6px 6px 12px;
       }
       .mb-leaf-face img {
         width: 100%; height: 100%;
         object-fit: cover; display: block;
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-      }
-      /* الوجه الخلفي: مقلوب 180 درجة مسبقاً + حواف معكوسة */
-      .mb-leaf-back {
-        transform: rotateY(180deg);
-        border-radius: 12px 6px 6px 12px;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        pointer-events: none;
       }
 
       /* ── Z-index: الأوراق في وضعها الطبيعي (قبل الانقلاب) ── */
@@ -260,6 +272,7 @@ class MemoryBook {
       /* ── وضع الانقلاب ── */
       .mb-leaf.mb-flipped {
         transform: rotateY(-180deg);
+        -webkit-transform: rotateY(-180deg);
       }
     `;
     document.head.appendChild(s);
@@ -576,7 +589,7 @@ class MemoryBook {
     // اقلب الغلاف بعد بدء اتساع الكتاب (تأخير بسيط للانسيابية)
     this._timers.push(setTimeout(() => {
       this.$coverLeaf.classList.add("mb-flipped");
-    }, 80));
+    }, 25));
 
     const s0 = this.spreads[0] || {};
     this._typeMessage(s0.message || "");
