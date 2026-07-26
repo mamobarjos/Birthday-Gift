@@ -1,5 +1,8 @@
 # 🎁 بطاقة عيد ميلاد تفاعلية وثلاثية الأبعاد | Interactive 3D Birthday Gift Card
 
+### 🌐 [🎉 مشاهدة العرض الحي والمباشر (Live Demo) ✨](https://special-gift-foryou.vercel.app/)
+> **رابط الموقع المباشر:** [https://special-gift-foryou.vercel.app/](https://special-gift-foryou.vercel.app/)
+
 > **تجربة ويب احترافية ومبهرة لتقديم تهنئة عيد ميلاد بأسلوب سينمائي مبتكر، تدمج بين تأثيرات المصفوفة (Matrix Rain)، وجسيمات النصوص المتفجرة (Particle Text)، وكتاب ذكريات واقعي وثلاثي الأبعاد (3D Memory Book) مع مشغل موسيقى ذكي وتصميم زجاجي فاخر.**
 
 ---

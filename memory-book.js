@@ -138,9 +138,9 @@ class MemoryBook {
       /* ── شريط الرسائل ── */
       #mb-msg-bar {
         background: #fff; border-radius: 18px;
-        padding: 14px 28px;
-        max-width: min(680px, 92vw); min-width: min(380px, 84vw);
-        min-height: 56px;
+        padding: 14px 24px;
+        max-width: min(680px, 92vw); min-width: min(360px, 86vw);
+        min-height: 76px;
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         opacity: 0; transform: translateY(-20px);
@@ -150,9 +150,13 @@ class MemoryBook {
       #mb-msg-bar.mb-show { opacity: 1; transform: translateY(0); }
       #mb-msg-text {
         font-family: 'Noto Kufi Arabic', Arial, sans-serif;
-        font-size: clamp(13px, 2.2vw, 16px);
-        color: #222; line-height: 1.6;
+        font-size: clamp(13.5px, 3vw, 16px);
+        color: #222; line-height: 1.65;
         direction: rtl; text-align: center; font-weight: 500;
+        word-break: keep-all; overflow-wrap: break-word;
+      }
+      @media (max-width: 500px) {
+        #mb-msg-bar { padding: 12px 16px; min-height: 78px; }
       }
 
       /* ══════════════════════════════════════════════════════
@@ -629,15 +633,15 @@ class MemoryBook {
 
   // ─── HELPERS ────────────────────────────────────────────────────────────────
 
-  _typeMessage(text, speed = 35) {
+  _typeMessage(text, speed = 110) {
     if (this._typeTimer) clearTimeout(this._typeTimer);
     this.$msgText.textContent = "";
-    const chars = [...text];
+    const words = text.trim().split(/\s+/);
     let i = 0;
 
     const tick = () => {
-      if (i >= chars.length) return;
-      this.$msgText.textContent += chars[i++];
+      if (i >= words.length) return;
+      this.$msgText.textContent += (i === 0 ? "" : " ") + words[i++];
       this._typeTimer = setTimeout(tick, speed);
     };
     this._typeTimer = setTimeout(tick, 180);
