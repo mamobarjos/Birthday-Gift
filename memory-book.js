@@ -166,6 +166,7 @@ class MemoryBook {
       /* حاوية الكتاب */
       #mb-book-3d {
         perspective: 2200px;
+        -webkit-perspective: 2200px;
         position: relative;
         width: min(290px, 58vw);
         height: min(400px, 76vw);
@@ -235,14 +236,14 @@ class MemoryBook {
         -webkit-transform-style: preserve-3d;
         will-change: transform;
       }
-      /* إعطاء عمق فيزيائي طفيف (0.5px) لمنع تداخل الوجوه واهتزاز الرمشات على متصفحات الهاتف (Z-fighting Fix) */
+      /* إعطاء عمق فيزيائي طفيف (2.5px) لمنع تداخل الوجوه واهتزاز الرمشات على شاشات الهاتف عالية الدقة (Retina Z-fighting Fix) */
       .mb-leaf-front {
-        transform: rotateY(0deg) translateZ(0.5px);
-        -webkit-transform: rotateY(0deg) translateZ(0.5px);
+        transform: rotateY(0deg) translateZ(2.5px);
+        -webkit-transform: rotateY(0deg) translateZ(2.5px);
       }
       .mb-leaf-back {
-        transform: rotateY(180deg) translateZ(0.5px);
-        -webkit-transform: rotateY(180deg) translateZ(0.5px);
+        transform: rotateY(180deg) translateZ(2.5px);
+        -webkit-transform: rotateY(180deg) translateZ(2.5px);
         border-radius: 12px 6px 6px 12px;
       }
       .mb-leaf-face img {
@@ -558,9 +559,12 @@ class MemoryBook {
       this.isAnimating = true;
       this.currentStep = 1;
 
-      const s0 = this.spreads[0] || {};
-      this._typeMessage(s0.message || "");
       this.$leaf1.classList.remove("mb-flipped");
+
+      this._timers.push(setTimeout(() => {
+        const s0 = this.spreads[0] || {};
+        this._typeMessage(s0.message || "");
+      }, 50));
 
       this._timers.push(setTimeout(() => { this.isAnimating = false; }, 960));
 
@@ -604,8 +608,11 @@ class MemoryBook {
 
     this.$leaf1.classList.add("mb-flipped");
 
-    const s1 = this.spreads[1] || {};
-    this._typeMessage(s1.message || "");
+    // تأخير طفيف 50ms لرسالة النص حتى تبدأ حركة الدوران في المعالج الرسومي أولاً دون تعارض (Anti-Flicker)
+    this._timers.push(setTimeout(() => {
+      const s1 = this.spreads[1] || {};
+      this._typeMessage(s1.message || "");
+    }, 50));
 
     this._timers.push(setTimeout(() => { this.isAnimating = false; }, 960));
   }
@@ -614,17 +621,18 @@ class MemoryBook {
     this.isAnimating = true;
     this.currentStep = 3;
 
-    // إزالة جميع إيموجيات التفاعل وإيقاف إنتاجها فور البدء بإغلاق الكتاب
-    if (this._bubbleInt) {
-      clearInterval(this._bubbleInt);
-      this._bubbleInt = null;
-    }
-    document.querySelectorAll(".mb-bubble-heart").forEach(el => el.remove());
-
-    this.$msgBar.classList.remove("mb-show");
-
-    // اقلب Leaf 2 لإظهار ظهر الغلاف (يغطي كل شيء بفضل z=35)
+    // اقلب Leaf 2 لإظهار ظهر الغلاف فورا في المعالج الرسومي
     this.$leaf2.classList.add("mb-flipped");
+
+    // تأخير إزالة العناصر وإخفاء شريط الرسائل 50ms لمنع تقطيع الإطارات والرمشة على الهاتف
+    this._timers.push(setTimeout(() => {
+      if (this._bubbleInt) {
+        clearInterval(this._bubbleInt);
+        this._bubbleInt = null;
+      }
+      document.querySelectorAll(".mb-bubble-heart").forEach(el => el.remove());
+      this.$msgBar.classList.remove("mb-show");
+    }, 50));
 
     this._timers.push(setTimeout(() => {
       // بعد انتهاء قلب Leaf 2: أغلق عرض الكتاب ليعود لعرض صفحة واحدة
