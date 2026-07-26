@@ -381,12 +381,16 @@
       const fgCvs = document.getElementById("fgCanvas");
       fgCvs.style.transition = "opacity 1.2s ease";
       fgCvs.style.opacity = "0";
+      // إيقاف محرك الجسيمات مؤقتاً لتفريغ ذاكرة ومعالج الهاتف الرسومي بالكامل للكتاب ثلاثي الأبعاد (Anti-Flicker)
+      if (fgEngine && typeof fgEngine.pause === "function") fgEngine.pause();
 
       memoryBook = new MemoryBook({
         catGif: "Assest/Happy Birthday Cat Sticker.gif",
         coverImg: "Assest/Book/Love/Cover.jpeg",
         spreads: BOOK_SPREADS,
         onComplete: () => {
+          // إعادة تشغيل محرك الجسيمات عند انتهاء الدفتر
+          if (fgEngine && typeof fgEngine.resume === "function") fgEngine.resume();
           // جسيمات تبدأ بينما canvas مخفية (بسطرين لتوضيح الحروف مثل i)
           fgEngine.displayText("Happy Birthday\nTo You");
 
@@ -458,6 +462,7 @@
         memoryBook.destroy();
         memoryBook = null;
       }
+      if (fgEngine && typeof fgEngine.resume === "function") fgEngine.resume();
 
       document.fonts.ready.then(() => {
         let cumulative = 0;

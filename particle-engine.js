@@ -601,6 +601,19 @@ class ParticleTextEngine {
     drawParticles(this.ctx, this.particles, this.color, this.width, this.height);
   }
 
+  pause() {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+
+  resume() {
+    if (!this.rafId) {
+      this._loop();
+    }
+  }
+
   /**
    * إيقاف المحرك وتحرير الموارد.
    */

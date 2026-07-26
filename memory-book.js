@@ -256,19 +256,15 @@ class MemoryBook {
         pointer-events: none;
       }
 
-      /* ── Z-index: الأوراق في وضعها الطبيعي (قبل الانقلاب) ── */
-      #mb-cover-leaf { z-index: 30; }
-      #mb-leaf-1      { z-index: 20; }
-      #mb-leaf-2      { z-index: 10; }
+      /* ── Z-index والعمق الفيزيائي (3D Z-plane Separation): الأوراق في وضعها الطبيعي ── */
+      #mb-cover-leaf { z-index: 30; transform: translate3d(0, 0, 6px); -webkit-transform: translate3d(0, 0, 6px); }
+      #mb-leaf-1      { z-index: 20; transform: translate3d(0, 0, 4px); -webkit-transform: translate3d(0, 0, 4px); }
+      #mb-leaf-2      { z-index: 10; transform: translate3d(0, 0, 2px); -webkit-transform: translate3d(0, 0, 2px); }
 
-      /* ── Z-index: بعد الانقلاب ──
-         الورقة المقلوبة تنتقل لليسار، نخفض z-index لتُدفن خلف
-         الأوراق التالية التي لم تُقلب بعد (على اليمين).
-         استثناء: leaf-2 عند انقلابها تأخذ أعلى z-index لتغلق الكتاب نظيفاً.
-      */
-      #mb-cover-leaf.mb-flipped { z-index: 8;  }
-      #mb-leaf-1.mb-flipped      { z-index: 12; }
-      #mb-leaf-2.mb-flipped      { z-index: 35; }
+      /* ── بعد الانقلاب ── */
+      #mb-cover-leaf.mb-flipped { z-index: 8;  transform: rotateY(-180deg) translate3d(0, 0, 6px); -webkit-transform: rotateY(-180deg) translate3d(0, 0, 6px); }
+      #mb-leaf-1.mb-flipped      { z-index: 12; transform: rotateY(-180deg) translate3d(0, 0, 4px); -webkit-transform: rotateY(-180deg) translate3d(0, 0, 4px); }
+      #mb-leaf-2.mb-flipped      { z-index: 35; transform: rotateY(-180deg) translate3d(0, 0, 2px); -webkit-transform: rotateY(-180deg) translate3d(0, 0, 2px); }
 
       /* ── وضع الانقلاب ── */
       .mb-leaf.mb-flipped {
