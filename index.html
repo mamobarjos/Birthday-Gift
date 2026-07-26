@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birthday Gift — Demo</title>
+  <meta name="description" content="تجربة بصرية تفاعلية لعيد الميلاد" />
+
+  <!-- خط عربي (مطابق للمشروع الأصلي: Noto Kufi Arabic) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ══════════════════════════════════════════════════════════════
+       Reset & Base
+       الخلفية الأصلية: #000000 (أسود خالص)
+       الكود الأصلي: bg-black / background: "#000"
+    ══════════════════════════════════════════════════════════════ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000000;
+      /* أسود خالص — مطابق للأصل */
+      font-family: 'Noto Kufi Arabic', Arial, sans-serif;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       Canvas Layers
+       ──────────────────────────────────────────────────────────────
+       #bgCanvas (z-index: 0)  → MatrixGridEngine  (مطر الأحرف)
+       #fgCanvas (z-index: 9999) → ParticleTextEngine (النص الجسيمي)
+
+       الكود الأصلي:
+         MatrixCanvas:  className="fixed inset-0 z-0 w-full h-full" style={{background:"#000"}}
+         ParticleCanvas: className="fixed inset-0 pointer-events-none" style={{zIndex:9999}}
+    ══════════════════════════════════════════════════════════════ */
+    #bgCanvas,
+    #fgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* الطبقة السفلى: مطر المصفوفة (خلفية سوداء مدمجة مع alpha:false) */
+    #bgCanvas {
+      z-index: 0;
+      background: #000000;
+    }
+
+    /* الطبقة العليا: الجسيمات النصية (شفافة، pointer-events:none) */
+    #fgCanvas {
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    /* زر الإعادة العلوي (Top Replay Button) */
+    #topReplayBtn {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 70000;
+      background: rgba(255, 45, 117, 0.2);
+      border: 1px solid rgba(255, 45, 117, 0.5);
+      color: #ffffff;
+      border-radius: 24px;
+      padding: 10px 28px;
+      font-size: 14px;
+      font-family: 'Noto Kufi Arabic', Arial, sans-serif;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(255, 45, 117, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s ease;
+      letter-spacing: 0.05em;
+    }
+
+    #topReplayBtn.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #topReplayBtn:hover {
+      background: rgba(255, 45, 117, 0.4);
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    /* شريط التحكم بالموسيقى ومستوى الصوت (يخرج من أيقونة الكتم بسلاسة بتأثير شفاف متوهج مثل زر الإعادة) */
+    #audioControlBar {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 70001;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      direction: ltr;
+      flex-direction: row-reverse;
+      /* الأيقونة على اليمين والمؤشر يمتد لليسار */
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 30px;
+      height: 44px;
+      width: 44px;
+      padding: 0;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #audioControlBar:hover,
+    #audioControlBar:focus-within,
+    #audioControlBar.is-open {
+      width: 155px;
+      background: rgba(255, 45, 117, 0.25);
+      border: 1px solid rgba(255, 45, 117, 0.4);
+      box-shadow: 0 4px 20px rgba(255, 45, 117, 0.4);
+      padding-left: 14px;
+    }
+
+    #muteBtn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.9);
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      outline: none;
+      transition: transform 0.2s ease, color 0.25s ease;
+    }
+
+    #muteBtn:hover {
+      transform: scale(1.15);
+      color: #fff;
+    }
+
+    #muteBtn svg {
+      display: block;
+      width: 22px;
+      height: 22px;
+    }
+
+    #muteBtn .icon-muted {
+      display: none;
+    }
+
+    #muteBtn .icon-sound {
+      display: block;
+    }
+
+    #muteBtn.is-muted .icon-muted {
+      display: block;
+    }
+
+    #muteBtn.is-muted .icon-sound {
+      display: none;
+    }
+
+    #volSliderWrap {
+      width: 0;
+      opacity: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      transition: width 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+      margin-right: 0;
+    }
+
+    #audioControlBar:hover #volSliderWrap,
+    #audioControlBar:focus-within #volSliderWrap,
+    #audioControlBar.is-open #volSliderWrap {
+      width: 85px;
+      opacity: 1;
+      margin-right: 4px;
+    }
+
+    /* مؤشر التحكم بالصوت (Volume Slider) مع تعبئة اللون الديناميكية بالعكس */
+    #volSlider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 85px;
+      height: 4px;
+      direction: rtl;
+      /* اتجاه اليمين لليسار: الصفر عند الأيقونة يميناً وأعلى صوت يساراً */
+      background: linear-gradient(to left, #ff2d75 55%, rgba(255, 255, 255, 0.35) 55%);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    #volSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 2px rgba(0, 0, 0, 0.5);
+      transition: transform 0.15s ease;
+    }
+
+    #volSlider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    #volSlider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: none;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 2px rgba(0, 0, 0, 0.5);
+      transition: transform 0.15s ease;
+    }
+
+    #volSlider::-moz-range-thumb:hover {
+      transform: scale(1.25);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Layer 0 — MatrixGridEngine -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- Layer 9999 — ParticleTextEngine -->
+  <canvas id="fgCanvas"></canvas>
+
+  <!-- الموسيقى الخلفية -->
+  <audio id="bgMusic" src="Assest/music.mp3" loop preload="auto"></audio>
+
+  <!-- شريط التحكم بالموسيقى والصوت -->
+  <div id="audioControlBar">
+    <button id="muteBtn" title="كتم/تشغيل الموسيقى" aria-label="Toggle Music">
+      <!-- حالة التشغيل: نوتة موسيقية مع موجات -->
+      <svg class="icon-sound" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+      </svg>
+      <!-- حالة الكتم: نفس الأيقونة مع خط قطري -->
+      <svg class="icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+        <line x1="3" y1="3" x2="21" y2="21" stroke-width="2" />
+      </svg>
+    </button>
+    <div id="volSliderWrap">
+      <input type="range" id="volSlider" min="0" max="100" value="55" title="مستوى الصوت">
+    </div>
+  </div>
+
+  <!-- Top Replay Button -->
+  <button id="topReplayBtn">↺ إعادة التشغيل</button>
+
+  <!-- المحركان والمكونات -->
+  <script src="matrix-engine.js"></script>
+  <script src="particle-engine.js"></script>
+  <script src="memory-book.js"></script>
+
+  <script>
+    "use strict";
+
+    // ══════════════════════════════════════════════════════════════════
+    //  الإعداد — مطابق للقيم الأصلية في الكود المصغّر
+    //
+    //  الكود الأصلي (DEFAULT_CONFIG في chunk 27639):
+    //    themeColor:   "#ff2d75"
+    //    messageWords: ["عيد", "ميلاد", "سعيد"]
+    //    name:         ""
+    //    letterMessage: "كل عام وأنت بخير..."
+    //
+    //  المشهد الأصلي (scenes array في chunk 23697):
+    //    ["intro", "book", "heart"]
+    //    intro → يشغّل: countdown 3→2→1 ثم الكلمات ثم الاسم ثم الجملة الكاملة
+    // ══════════════════════════════════════════════════════════════════
+
+    const THEME_COLOR = "#ff2d75";
+
+    // themeColor2 محسوبة من الكود الأصلي (تفتيح 35%):
+    // r=255, g=round(45+(255-45)*0.35)=119, b=round(117+(255-117)*0.35)=165
+    const THEME_COLOR2 = "#ff77a5";
+
+    const WORDS = ["عيد", "ميلاد", "سعيد"];
+
+    // ── 1. تشغيل طبقة الخلفية (MatrixGridEngine) ──────────────────────────
+    const bgEngine = new MatrixGridEngine("bgCanvas", {
+      themeColor: THEME_COLOR,   // #ff2d75 — مطابق للأصل
+      themeColor2: THEME_COLOR2,  // #ff77a5 — مطابق للأصل
+      matrixText: "HAPPYBIRTHDAY", // نص المصفوفة — مطابق للأصل
+      updateMs: 70,            // أبطأ قليلاً من الأصل (50ms) لمطر أنيق وهادئ
+    });
+
+    // ── 2. تشغيل محرك الجسيمات (ParticleTextEngine) ──────────────────────
+    // الخط: نفس الخط الأصلي — Noto Kufi Arabic
+    const fgEngine = new ParticleTextEngine("fgCanvas", THEME_COLOR, "Noto Kufi Arabic");
+
+    // ══════════════════════════════════════════════════════════════════
+    //  التسلسل الزمني للمشهد (مطابق للكود الأصلي)
+    //
+    //  الكود الأصلي (دالة T() في chunk 23697):
+    //    k = ["#countdown_3", ...words, name, fullSentence, "#done"]
+    //    - العداد: كل 1400ms
+    //    - الكلمات: 1900ms + max(0, len-5)*100ms
+    //    - نهاية: setTimeout(onComplete, 500)
+    // ══════════════════════════════════════════════════════════════════
+
+    // حساب مدة كل عنصر مطابقةً للكود الأصلي
+    function calcHoldMs(text, isCountdown) {
+      if (isCountdown) return 1400;
+      // تسريع انفجار الكلمات قليلاً وجعله أكثر حيوية
+      return 2200 + Math.max(0, (text.length - 5) * 100);
+    }
+
+    // ── عروض كتاب الذكريات (2 صور لكل صفحة مفتوحة) ─────────────────────────
+    const BOOK_SPREADS = [
+      {
+        left: "Assest/Book/Love/0.jpeg",
+        right: "Assest/Book/Love/1.jpeg",
+        message: "كل عام وأنتِ بخير؛ أتمنى لكِ عاماً هادئاً ومضيئاً بالنجاح، بعيداً عن صخب الأيام"
+      },
+      {
+        left: "Assest/Book/Love/2.jpeg",
+        right: "Assest/Book/Love/3.jpeg",
+        message: "ورغم أي أشواك قد تعترض طريقك، أتمنى أن تكون مسيرتكِ القادمة كفيلمٍ مُلهم."
+      }
+    ];
+
+    let memoryBook = null;
+    const topReplayBtn = document.getElementById("topReplayBtn");
+
+    function launchMemoryBook() {
+      const fgCvs = document.getElementById("fgCanvas");
+      fgCvs.style.transition = "opacity 1.2s ease";
+      fgCvs.style.opacity = "0";
+
+      memoryBook = new MemoryBook({
+        catGif: "Assest/Happy Birthday Cat Sticker.gif",
+        coverImg: "Assest/Book/Love/Cover.jpeg",
+        spreads: BOOK_SPREADS,
+        onComplete: () => {
+          // جسيمات تبدأ بينما canvas مخفية (بسطرين لتوضيح الحروف مثل i)
+          fgEngine.displayText("Happy Birthday\nTo You");
+
+          // إظهار canvas بعد 900ms
+          setTimeout(() => { fgCvs.style.opacity = "1"; }, 900);
+
+          // عرض قلب الجسيمات بعد ذلك
+          setTimeout(() => {
+            fgEngine.displayHeart();
+            // خفوت الموسيقى تدريجياً قبل ظهور زر إعادة التشغيل، ومع ظهوره تتوقف تماماً
+            setTimeout(() => {
+              fadeOutMusic(2500, () => {
+                topReplayBtn.classList.add("show");
+              });
+            }, 1300);
+          }, 4200);
+        },
+      });
+      memoryBook.start();
+    }
+
+    const TIMELINE = [
+      { text: "3", isCountdown: true },
+      { text: "2", isCountdown: true },
+      { text: "1", isCountdown: true },
+      ...WORDS.map(w => ({ text: w, isCountdown: false })),
+    ].map(s => ({ ...s, holdMs: s.holdMs ?? calcHoldMs(s.text, s.isCountdown) }));
+
+    let timers = [];
+    let musicTriggered = false;
+    let fadeInterval = null;
+
+    function fadeOutMusic(durationMs = 2500, onDone = null) {
+      if (fadeInterval) clearInterval(fadeInterval);
+      if (bgMusic.paused || isMuted) {
+        if (onDone) onDone();
+        return;
+      }
+      const initialVol = bgMusic.volume;
+      const steps = 30;
+      const stepMs = durationMs / steps;
+      let currentStep = 0;
+
+      fadeInterval = setInterval(() => {
+        currentStep++;
+        const ratio = Math.max(0, 1 - (currentStep / steps));
+        bgMusic.volume = initialVol * ratio;
+        if (currentStep >= steps) {
+          clearInterval(fadeInterval);
+          fadeInterval = null;
+          bgMusic.pause();
+          bgMusic.currentTime = 0;
+          if (onDone) onDone();
+        }
+      }, stepMs);
+    }
+
+    function runTimeline() {
+      topReplayBtn.classList.remove("show");
+      timers.forEach(clearTimeout);
+      timers = [];
+      if (fadeInterval) { clearInterval(fadeInterval); fadeInterval = null; }
+      musicTriggered = false;
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
+      if (!isMuted) bgMusic.volume = (volSlider.value / 100);
+
+      if (memoryBook) {
+        memoryBook.destroy();
+        memoryBook = null;
+      }
+
+      document.fonts.ready.then(() => {
+        let cumulative = 0;
+
+        TIMELINE.forEach((scene) => {
+          const delay = cumulative;
+          cumulative += scene.holdMs;
+
+          timers.push(setTimeout(() => {
+            fgEngine.displayText(scene.text, scene.isCountdown);
+            // تشغيل الموسيقى عند نهاية العد مباشرة وقبل ظهور القط العازف (أول كلمة بعد العداد)
+            if (!scene.isCountdown && !musicTriggered) {
+              musicTriggered = true;
+              startMusic();
+            }
+          }, delay));
+        });
+
+        timers.push(setTimeout(() => {
+          setTimeout(launchMemoryBook, 600);
+        }, cumulative));
+      });
+    }
+
+    topReplayBtn.addEventListener("click", () => {
+      runTimeline();
+    });
+
+    // ── الموسيقى الخلفية ────────────────────────────────────────────────────
+    const bgMusic = document.getElementById("bgMusic");
+    const muteBtn = document.getElementById("muteBtn");
+    const volSlider = document.getElementById("volSlider");
+    const audioBar = document.getElementById("audioControlBar");
+    let isMuted = false;
+
+    function updateSliderFill(val) {
+      const p = Number(val);
+      volSlider.style.background = `linear-gradient(to left, #ff2d75 ${p}%, rgba(255, 255, 255, 0.35) ${p}%)`;
+    }
+
+    function startMusic() {
+      if (fadeInterval) { clearInterval(fadeInterval); fadeInterval = null; }
+      if (bgMusic.paused && !isMuted) {
+        if (volSlider.value == 0) volSlider.value = 55;
+        updateSliderFill(volSlider.value);
+        bgMusic.volume = (volSlider.value / 100);
+        bgMusic.play().catch(() => {
+          // المتصفح قد يمنع التشغيل التلقائي — سيتم المحاولة عند أول تفاعل للمستخدم
+        });
+      }
+    }
+
+    function handleUserInteraction() {
+      if (!musicTriggered) {
+        // فتح قفل الصوت في المتصفح أثناء العد التنازلي دون تشغيل الصوت فعلياً
+        if (bgMusic.paused) {
+          const oldVol = bgMusic.volume;
+          bgMusic.volume = 0;
+          bgMusic.play().then(() => {
+            if (!musicTriggered) {
+              bgMusic.pause();
+              bgMusic.currentTime = 0;
+              bgMusic.volume = oldVol;
+            }
+          }).catch(() => { });
+        }
+      } else {
+        if (bgMusic.paused && !isMuted && !fadeInterval) {
+          startMusic();
+        }
+      }
+    }
+
+    window.addEventListener("click", handleUserInteraction);
+    window.addEventListener("touchstart", handleUserInteraction);
+    window.addEventListener("keydown", handleUserInteraction);
+
+    audioBar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      audioBar.classList.toggle("is-open");
+    });
+    document.addEventListener("click", (e) => {
+      if (!audioBar.contains(e.target)) {
+        audioBar.classList.remove("is-open");
+      }
+    });
+
+    volSlider.addEventListener("input", (e) => {
+      e.stopPropagation();
+      const val = Number(e.target.value);
+      updateSliderFill(val);
+      if (val === 0) {
+        isMuted = true;
+        bgMusic.muted = true;
+        muteBtn.classList.add("is-muted");
+      } else if (isMuted) {
+        isMuted = false;
+        bgMusic.muted = false;
+        muteBtn.classList.remove("is-muted");
+      }
+      if (!fadeInterval) bgMusic.volume = val / 100;
+      if (bgMusic.paused && !isMuted && musicTriggered) startMusic();
+    });
+
+    volSlider.addEventListener("click", (e) => e.stopPropagation());
+
+    muteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      isMuted = !isMuted;
+      bgMusic.muted = isMuted;
+      muteBtn.classList.toggle("is-muted", isMuted);
+      if (!isMuted) {
+        if (volSlider.value == 0) volSlider.value = 55;
+        updateSliderFill(volSlider.value);
+        if (!fadeInterval) bgMusic.volume = volSlider.value / 100;
+        if (musicTriggered) startMusic();
+      } else {
+        updateSliderFill(0);
+      }
+    });
+
+    // ضبط التعبئة الأولية
+    updateSliderFill(volSlider.value);
+
+    // ابدأ التوقيت فوراً
+    runTimeline();
+  </script>
+</body>
+
+</html>
